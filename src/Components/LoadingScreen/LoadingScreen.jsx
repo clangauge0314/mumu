@@ -30,10 +30,10 @@ function LoadingScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-120 flex items-center justify-center bg-white"
+      className="fixed inset-0 z-120 flex items-center justify-center bg-white dark:bg-slate-950"
     >
       <div className="flex flex-col items-center">
-        <div className="flex h-100 w-100 items-center justify-center sm:h-78 sm:w-78">
+        <div className="flex h-100 w-100 items-center justify-center sm:h-112 sm:w-112">
           {isLottieReady ? (
             <DotLottieReact
               src="/loading2.lottie"
@@ -45,12 +45,12 @@ function LoadingScreen() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-              className="h-12 w-12 rounded-full border-2 border-[#1b76fb]/20 border-t-[#1b76fb]"
+              className="h-16 w-16 rounded-full border-2 border-[#1b76fb]/20 border-t-[#1b76fb]"
             />
           )}
         </div>
         {loadFailed && (
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
             `public/loading2.lottie` 파일을 확인해주세요
           </p>
         )}

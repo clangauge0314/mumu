@@ -1,5 +1,7 @@
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from '../../hooks/useTranslation'
+import { categoryGroups, getCategoryLabel } from '../../config/categories'
 import { filterConfig } from '../../config/filters'
 import { useFilterStore } from '../../store/useFilterStore'
 import {
@@ -8,14 +10,14 @@ import {
   hasPriceFilter,
 } from '../../utils/filterProducts'
 
-function FilterChip({ label, onRemove }) {
+function FilterChip({ label, onRemove, removeFilterLabel }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#1b76fb]/10 px-2.5 py-1 text-xs font-medium text-[#1b76fb]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#1b76fb]/10 px-2.5 py-1 text-xs font-medium text-[#1b76fb] dark:bg-[#1b76fb]/20 dark:text-[#5b9dff]">
       {label}
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`${label} 필터 제거`}
+        aria-label={removeFilterLabel}
         className="rounded-full p-0.5 hover:bg-[#1b76fb]/15"
       >
         <X size={12} />
@@ -24,10 +26,55 @@ function FilterChip({ label, onRemove }) {
   )
 }
 
+function CategoryFilter({ value, onChange, t }) {
+  const chipClass = (active) =>
+    `rounded-lg border px-2.5 py-1.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
+      active
+        ? 'border-[#1b76fb] bg-[#1b76fb] text-white'
+        : 'border-slate-200 bg-white text-slate-600 hover:border-[#1b76fb]/40 hover:text-[#1b76fb] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#5b9dff]/50 dark:hover:text-[#5b9dff]'
+    }`
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {t('category')}
+        </p>
+        <button
+          type="button"
+          onClick={() => onChange('all')}
+          className={chipClass(value === 'all')}
+        >
+          {t('all')}
+        </button>
+      </div>
+      {categoryGroups.map((group) => (
+        <div key={group.label}>
+          <p className="mb-2 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+            {group.label}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onChange(item.id)}
+                className={chipClass(value === item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function OptionGroup({ title, options, value, onChange }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {title}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -39,7 +86,7 @@ function OptionGroup({ title, options, value, onChange }) {
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
               value === opt.id
                 ? 'border-[#1b76fb] bg-[#1b76fb] text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-[#1b76fb]/40 hover:text-[#1b76fb]'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-[#1b76fb]/40 hover:text-[#1b76fb] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-[#5b9dff]/50 dark:hover:text-[#5b9dff]'
             }`}
           >
             {opt.label}
@@ -50,7 +97,7 @@ function OptionGroup({ title, options, value, onChange }) {
   )
 }
 
-function PriceFilter() {
+function PriceFilter({ t }) {
   const minPrice = useFilterStore((s) => s.minPrice)
   const maxPrice = useFilterStore((s) => s.maxPrice)
   const freeOnly = useFilterStore((s) => s.freeOnly)
@@ -59,12 +106,12 @@ function PriceFilter() {
   const setFreeOnly = useFilterStore((s) => s.setFreeOnly)
 
   const inputClass =
-    'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400'
+    'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900 dark:disabled:text-slate-500'
 
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        가격
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {t('price')}
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -78,7 +125,7 @@ function PriceFilter() {
             disabled={freeOnly}
             className={inputClass}
           />
-          <span className="shrink-0 text-sm text-slate-400">~</span>
+          <span className="shrink-0 text-sm text-slate-400 dark:text-slate-500">~</span>
           <input
             type="number"
             min="0"
@@ -94,8 +141,8 @@ function PriceFilter() {
         <label
           className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 transition sm:py-2 ${
             freeOnly
-              ? 'border-[#1b76fb] bg-[#1b76fb]/10'
-              : 'border-slate-200 bg-slate-50'
+              ? 'border-[#1b76fb] bg-[#1b76fb]/10 dark:bg-[#1b76fb]/20'
+              : 'border-slate-200 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
           }`}
         >
           <input
@@ -108,8 +155,8 @@ function PriceFilter() {
             }}
             className="h-4 w-4 accent-[#1b76fb]"
           />
-          <span className="whitespace-nowrap text-sm font-medium text-slate-700">
-            {filterConfig.price.freeOnlyLabel}
+          <span className="whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-200">
+            {t('freeShare')}
           </span>
         </label>
       </div>
@@ -118,6 +165,7 @@ function PriceFilter() {
 }
 
 function ProductSearch() {
+  const { t } = useTranslation()
   const query = useFilterStore((s) => s.query)
   const category = useFilterStore((s) => s.category)
   const minPrice = useFilterStore((s) => s.minPrice)
@@ -143,7 +191,7 @@ function ProductSearch() {
     sort,
   })
 
-  const categoryLabel = filterConfig.categories.find((c) => c.id === category)?.label
+  const categoryLabel = getCategoryLabel(category)
   const priceLabel = getPriceFilterLabel(minPrice, maxPrice, freeOnly)
   const sortLabel = filterConfig.sortOptions.find((s) => s.id === sort)?.label
 
@@ -164,21 +212,21 @@ function ProductSearch() {
         <div className="relative min-w-0 flex-1">
           <Search
             size={18}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400 dark:text-slate-500"
           />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="검색어를 입력해주세요"
-            className="w-full rounded-xl border border-slate-200 bg-white py-3 pr-4 pl-10 text-sm shadow-sm outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20"
+            placeholder={t('searchPlaceholder')}
+            className="w-full rounded-xl border border-slate-200 bg-white py-3 pr-4 pl-10 text-sm text-slate-900 shadow-sm outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:shadow-black/20"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              aria-label="검색어 지우기"
-              className="absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              aria-label={t('clearSearch')}
+              className="absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
               <X size={16} />
             </button>
@@ -191,12 +239,12 @@ function ProductSearch() {
           aria-expanded={isFilterOpen}
           className={`relative inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
             isFilterOpen || activeCount > 0
-              ? 'border-[#1b76fb] bg-[#1b76fb]/10 text-[#1b76fb]'
-              : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-[#1b76fb]/40'
+              ? 'border-[#1b76fb] bg-[#1b76fb]/10 text-[#1b76fb] dark:bg-[#1b76fb]/20 dark:text-[#5b9dff]'
+              : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-[#1b76fb]/40 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:shadow-black/20'
           }`}
         >
           <SlidersHorizontal size={18} />
-          <span className="hidden sm:inline">필터</span>
+          <span className="hidden sm:inline">{t('filter')}</span>
           {activeCount > 0 && (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1b76fb] px-1 text-xs font-bold text-white">
               {activeCount}
@@ -211,20 +259,29 @@ function ProductSearch() {
             <FilterChip
               label={categoryLabel}
               onRemove={() => setCategory('all')}
+              removeFilterLabel={t('removeFilter', { label: categoryLabel })}
             />
           )}
           {priceLabel && (
-            <FilterChip label={priceLabel} onRemove={clearPriceFilter} />
+            <FilterChip
+              label={priceLabel}
+              onRemove={clearPriceFilter}
+              removeFilterLabel={t('removeFilter', { label: priceLabel })}
+            />
           )}
           {sort !== 'latest' && (
-            <FilterChip label={sortLabel} onRemove={() => setSort('latest')} />
+            <FilterChip
+              label={sortLabel}
+              onRemove={() => setSort('latest')}
+              removeFilterLabel={t('removeFilter', { label: sortLabel })}
+            />
           )}
           <button
             type="button"
             onClick={resetFilters}
-            className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-[#1b76fb] hover:underline"
+            className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-[#1b76fb] hover:underline dark:text-slate-400 dark:hover:text-[#5b9dff]"
           >
-            전체 초기화
+            {t('resetFilters')}
           </button>
         </div>
       )}
@@ -238,37 +295,32 @@ function ProductSearch() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/30">
+              <CategoryFilter value={category} onChange={setCategory} t={t} />
+              <PriceFilter t={t} />
               <OptionGroup
-                title="카테고리"
-                options={filterConfig.categories}
-                value={category}
-                onChange={setCategory}
-              />
-              <PriceFilter />
-              <OptionGroup
-                title="정렬"
+                title={t('sort')}
                 options={filterConfig.sortOptions}
                 value={sort}
                 onChange={setSort}
               />
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     resetFilters()
                     setFilterOpen(false)
                   }}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  초기화
+                  {t('reset')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilterOpen(false)}
                   className="rounded-lg bg-[#1b76fb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1667d8]"
                 >
-                  적용
+                  {t('apply')}
                 </button>
               </div>
             </div>

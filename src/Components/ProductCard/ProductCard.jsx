@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Heart, MapPin } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { formatPrice } from '../../data/products'
+import { useTranslation } from '../../hooks/useTranslation'
+import { formatProductPrice } from '../../utils/formatProductPrice'
 
 const cardVariants = {
   hidden: {
@@ -39,8 +40,10 @@ const cardVariants = {
 }
 
 function ProductCard({ product, index }) {
+  const { t, locale } = useTranslation()
   const isFree = product.price === 0
   const [isHovered, setIsHovered] = useState(false)
+  const priceLabel = formatProductPrice(product.price, locale, t('freeShare'))
 
   return (
     <motion.article
@@ -60,7 +63,7 @@ function ProductCard({ product, index }) {
       whileTap={{ scale: 0.95 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      className="group relative cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200/80 hover:shadow-md hover:ring-[#1b76fb]/50"
+      className="group relative cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200/80 hover:shadow-md hover:ring-[#1b76fb]/50 dark:bg-slate-900 dark:shadow-black/30 dark:ring-slate-700 dark:hover:ring-[#5b9dff]/50"
     >
       <motion.div
         className="pointer-events-none absolute inset-0 z-10 bg-linear-to-r from-white/0 via-white/45 to-white/0 mix-blend-screen"
@@ -82,7 +85,7 @@ function ProductCard({ product, index }) {
         transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
         style={{ filter: 'blur(14px)' }}
       />
-      <div className="relative aspect-square overflow-hidden bg-slate-100">
+      <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
         <motion.img
           src={product.image}
           alt={product.title}
@@ -108,24 +111,24 @@ function ProductCard({ product, index }) {
       </div>
 
       <motion.div layout="position" className="p-3">
-        <h3 className="line-clamp-2 text-sm font-medium leading-snug text-slate-800">
+        <h3 className="line-clamp-2 text-sm font-medium leading-snug text-slate-800 dark:text-slate-100">
           {product.title}
         </h3>
         <motion.p
           layout
           className={`mt-1.5 text-base font-bold ${
-            isFree ? 'text-[#1b76fb]' : 'text-slate-900'
+            isFree ? 'text-[#1b76fb] dark:text-[#5b9dff]' : 'text-slate-900 dark:text-slate-50'
           }`}
         >
-          {formatPrice(product.price)}
+          {priceLabel}
         </motion.p>
-        <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
+        <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
           <span className="flex min-w-0 items-center gap-1 truncate">
             <MapPin size={12} className="shrink-0 text-[#1b76fb]" />
             <span className="truncate">{product.location}</span>
           </span>
           <motion.span
-            className="flex shrink-0 items-center gap-0.5 text-slate-400"
+            className="flex shrink-0 items-center gap-0.5 text-slate-400 dark:text-slate-500"
             whileHover={{ scale: 1.15, color: '#ef4444' }}
             transition={{ type: 'spring', stiffness: 500, damping: 15 }}
           >

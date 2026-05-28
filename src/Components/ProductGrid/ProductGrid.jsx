@@ -5,6 +5,7 @@ import ProductSearch from '../ProductSearch/ProductSearch'
 import { products } from '../../data/products'
 import { useFilterStore } from '../../store/useFilterStore'
 import { filterProducts } from '../../utils/filterProducts'
+import { useTranslation } from '../../hooks/useTranslation'
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
 
 const listVariants = {
@@ -15,15 +16,22 @@ const listVariants = {
   },
 }
 
-function LoadMoreSentinel({ sentinelRef, isLoading, hasMore, loadedCount, totalCount }) {
+function LoadMoreSentinel({
+  sentinelRef,
+  isLoading,
+  hasMore,
+  loadedCount,
+  totalCount,
+  t,
+}) {
   if (!hasMore && loadedCount >= totalCount) {
     return (
       <motion.p
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="py-8 text-center text-sm text-slate-400"
+        className="py-8 text-center text-sm text-slate-400 dark:text-slate-500"
       >
-        모든 상품을 불러왔어요
+        {t('allLoaded')}
       </motion.p>
     )
   }
@@ -42,8 +50,8 @@ function LoadMoreSentinel({ sentinelRef, isLoading, hasMore, loadedCount, totalC
             animate={{ rotate: 360 }}
             transition={{ duration: 0.75, repeat: Infinity, ease: 'linear' }}
           />
-          <span className="text-sm font-medium text-slate-500">
-            상품을 불러오는 중…
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {t('loadingProducts')}
           </span>
         </motion.div>
       )}
@@ -51,7 +59,7 @@ function LoadMoreSentinel({ sentinelRef, isLoading, hasMore, loadedCount, totalC
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs text-slate-400"
+          className="text-xs text-slate-400 dark:text-slate-500"
         >
           {loadedCount} / {totalCount}
         </motion.span>
@@ -61,6 +69,7 @@ function LoadMoreSentinel({ sentinelRef, isLoading, hasMore, loadedCount, totalC
 }
 
 function ProductGrid() {
+  const { t } = useTranslation()
   const query = useFilterStore((s) => s.query)
   const category = useFilterStore((s) => s.category)
   const minPrice = useFilterStore((s) => s.minPrice)
@@ -98,11 +107,11 @@ function ProductGrid() {
         className="mb-4 flex items-end justify-between gap-4"
       >
         <div>
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-            우리 동네 중고거래
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-50">
+            {t('heroTitle')}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            가까운 이웃과 함께하는 mumu
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {t('heroSubtitle')}
           </p>
         </div>
         <motion.span
@@ -110,9 +119,9 @@ function ProductGrid() {
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-          className="shrink-0 rounded-full bg-[#1b76fb]/10 px-3 py-1 text-xs font-semibold text-[#1b76fb]"
+          className="shrink-0 rounded-full bg-[#1b76fb]/10 px-3 py-1 text-xs font-semibold text-[#1b76fb] dark:bg-[#1b76fb]/20 dark:text-[#5b9dff]"
         >
-          {totalCount}개
+          {t('itemCount', { count: totalCount })}
         </motion.span>
       </motion.div>
 
@@ -150,6 +159,7 @@ function ProductGrid() {
               hasMore={hasMore}
               loadedCount={loadedCount}
               totalCount={totalCount}
+              t={t}
             />
           </motion.div>
         ) : (
@@ -159,23 +169,23 @@ function ProductGrid() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center"
+            className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center dark:border-slate-700 dark:bg-slate-900"
           >
             <motion.p
               initial={{ y: 8, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.05 }}
-              className="text-sm font-medium text-slate-700"
+              className="text-sm font-medium text-slate-700 dark:text-slate-200"
             >
-              조건에 맞는 상품이 없어요
+              {t('noResults')}
             </motion.p>
             <motion.p
               initial={{ y: 8, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="mt-1 text-xs text-slate-500"
+              className="mt-1 text-xs text-slate-500 dark:text-slate-400"
             >
-              검색어나 필터를 변경해 보세요
+              {t('emptySearchHint')}
             </motion.p>
           </motion.div>
         )}
