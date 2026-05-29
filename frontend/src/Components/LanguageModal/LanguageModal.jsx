@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
-import { toast } from 'sonner'
+import { i18nToast } from '../../utils/i18nToast'
 import { languages } from '../../config/locales'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useLanguageStore } from '../../store/useLanguageStore'
@@ -37,7 +37,7 @@ function LanguageModal() {
     }
     setLocale(id)
     closeLanguageModal()
-    toast.success(t('languageChanged'))
+    i18nToast.successForLocale(id, 'languageChanged')
   }
 
   return (

@@ -1,4 +1,4 @@
-import { filterConfig } from '../config/filters'
+import { formatPriceAmount } from './formatProductPrice'
 
 export function parsePriceInput(value) {
   if (value === '' || value == null) return null
@@ -56,18 +56,25 @@ export function filterProducts(
   return result
 }
 
-export function getPriceFilterLabel(minPrice, maxPrice, freeOnly) {
-  if (freeOnly) return filterConfig.price.freeOnlyLabel
+export function getPriceFilterLabel(minPrice, maxPrice, freeOnly, t, locale) {
+  if (freeOnly) return t('freeShare')
 
   const min = parsePriceInput(minPrice)
   const max = parsePriceInput(maxPrice)
 
   if (min == null && max == null) return null
   if (min != null && max != null) {
-    return `${min.toLocaleString('ko-KR')}원 ~ ${max.toLocaleString('ko-KR')}원`
+    return t('priceRange', {
+      min: formatPriceAmount(min, locale),
+      max: formatPriceAmount(max, locale),
+    })
   }
-  if (min != null) return `${min.toLocaleString('ko-KR')}원 이상`
-  if (max != null) return `${max.toLocaleString('ko-KR')}원 이하`
+  if (min != null) {
+    return t('priceMinOnly', { amount: formatPriceAmount(min, locale) })
+  }
+  if (max != null) {
+    return t('priceMaxOnly', { amount: formatPriceAmount(max, locale) })
+  }
   return null
 }
 

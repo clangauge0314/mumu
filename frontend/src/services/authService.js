@@ -1,15 +1,20 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
-import { formatRoomLocation, roomValidationMessage } from '../utils/roomNumber'
+import { createAppError } from '../utils/firebaseAuthErrors'
+import { formatRoomLocation, getRoomValidationErrorKey } from '../utils/roomNumber'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -157,16 +162,16 @@ export async function ensureGoogleProfile(firebaseUser, { nickname, location }) 
 export async function updateUserProfile(uid, { nickname, location }) {
   const firebaseUser = auth.currentUser
   if (!firebaseUser || firebaseUser.uid !== uid) {
-    throw new Error('로그인 상태를 확인할 수 없어요.')
+    throw createAppError('authErrorNotLoggedIn')
   }
 
   const trimmedNickname = nickname.trim()
-  const roomError = roomValidationMessage(location)
-  if (!trimmedNickname) throw new Error('닉네임을 입력해 주세요.')
-  if (roomError) throw new Error(roomError)
+  const roomErrorKey = getRoomValidationErrorKey(location)
+  if (!trimmedNickname) throw createAppError('nicknameRequired')
+  if (roomErrorKey) throw createAppError(roomErrorKey)
 
   const trimmedLocation = formatRoomLocation(location)
-  if (!trimmedLocation) throw new Error('호실 번호는 숫자 3자리여야 해요.')
+  if (!trimmedLocation) throw createAppError('roomErrorInvalid')
 
   const existing = await getUserProfile(uid)
   const provider = existing?.provider ?? 'email'
@@ -185,6 +190,57 @@ export async function updateUserProfile(uid, { nickname, location }) {
 
 export async function signOutUser() {
   await signOut(auth)
+}
+
+async function deleteFirestoreProfile(uid) {
+  await deleteDoc(doc(db, 'users', uid))
+}
+
+async function reauthenticateCurrentUser({ password } = {}) {
+  const firebaseUser = auth.currentUser
+  if (!firebaseUser) throw createAppError('authErrorNotLoggedIn')
+
+  const usesGoogle = firebaseUser.providerData.some(
+    (p) => p.providerId === 'google.com',
+  )
+
+  if (usesGoogle) {
+    await reauthenticateWithPopup(firebaseUser, googleProvider)
+    return
+  }
+
+  if (!password?.trim() || !firebaseUser.email) {
+    throw createAppError('authErrorReauthRequired')
+  }
+
+  const credential = EmailAuthProvider.credential(
+    firebaseUser.email,
+    password.trim(),
+  )
+  await reauthenticateWithCredential(firebaseUser, credential)
+}
+
+export async function deleteUserAccount({ password } = {}) {
+  const firebaseUser = auth.currentUser
+  if (!firebaseUser) throw createAppError('authErrorNotLoggedIn')
+
+  const runDelete = async (user) => {
+    await deleteFirestoreProfile(user.uid)
+    await deleteUser(user)
+  }
+
+  try {
+    await runDelete(firebaseUser)
+  } catch (err) {
+    if (err?.code !== 'auth/requires-recent-login') throw err
+
+    await reauthenticateCurrentUser({ password })
+
+    const refreshedUser = auth.currentUser
+    if (!refreshedUser) throw createAppError('authErrorNotLoggedIn')
+
+    await runDelete(refreshedUser)
+  }
 }
 
 export function subscribeAuth(callback) {

@@ -1,18 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ImagePlus, X } from 'lucide-react'
-import { toast } from 'sonner'
-import { branding } from '../../config/branding'
-import { categoryGroups, defaultCategoryId } from '../../config/categories'
+import { i18nToast } from '../../utils/i18nToast'
+import { useTranslation } from '../../hooks/useTranslation'
+import {
+  isUploadApiConfigured,
+  uploadListingPhotos,
+} from '../../services/uploadService'
+import {
+  categoryGroups,
+  defaultCategoryId,
+  getCategoryGroupLabel,
+  getCategoryLabel,
+} from '../../config/categories'
 
 function ListingModal({ isOpen, onClose }) {
+  const { t } = useTranslation()
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
   const [isFreeShare, setIsFreeShare] = useState(false)
   const [category, setCategory] = useState(defaultCategoryId)
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef(null)
+
+  const MAX_PHOTO_BYTES = 15 * 1024 * 1024
+  const ALLOWED_PHOTO_TYPES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/avif',
+    'image/gif',
+  ])
 
   useEffect(() => {
     if (!isOpen) return
@@ -49,6 +69,19 @@ function ListingModal({ isOpen, onClose }) {
     const fileList = Array.from(event.target.files ?? [])
     if (!fileList.length) return
 
+    for (const file of fileList) {
+      if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+        i18nToast.error('listingImageTypeError')
+        event.target.value = ''
+        return
+      }
+      if (file.size > MAX_PHOTO_BYTES) {
+        i18nToast.error('listingImageSizeError')
+        event.target.value = ''
+        return
+      }
+    }
+
     const next = fileList.map((file) => ({
       id: `${file.name}-${file.lastModified}-${Math.random()}`,
       file,
@@ -67,9 +100,42 @@ function ListingModal({ isOpen, onClose }) {
     })
   }
 
-  const handleSubmit = (event) => {
+  const uploadErrorKey = (error) => {
+    const code = error?.message ?? ''
+    if (code === 'UPLOAD_API_NOT_CONFIGURED') return 'uploadApiNotConfigured'
+    if (code === 'UNSUPPORTED_IMAGE_TYPE') return 'listingImageTypeError'
+    if (code === 'IMAGE_TOO_LARGE') return 'listingImageSizeError'
+    return 'listingUploadFailed'
+  }
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    toast.success('물품 등록 요청이 접수되었어요. (임시)')
+    if (isSubmitting) return
+
+    const files = photos.map((photo) => photo.file)
+    if (files.length > 0) {
+      if (!isUploadApiConfigured()) {
+        i18nToast.error('uploadApiNotConfigured')
+        return
+      }
+
+      setIsSubmitting(true)
+      try {
+        const uploaded = await uploadListingPhotos(files)
+        if (import.meta.env.DEV) {
+          console.debug('[listing] uploaded URLs', uploaded.map((item) => item.url))
+        }
+        i18nToast.success('listingSubmitSuccess')
+        handleClose()
+      } catch (error) {
+        i18nToast.error(uploadErrorKey(error))
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
+
+    i18nToast.success('listingSubmitSuccess')
     handleClose()
   }
 
@@ -94,16 +160,16 @@ function ListingModal({ isOpen, onClose }) {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1b76fb]">
-                  {branding.dormName}
+                  {t('dormName')}
                 </p>
                 <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-50">
-                  기숙사 물품 등록
+                  {t('listingFormTitle')}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                aria-label="등록 모달 닫기"
+                aria-label={t('closeModal')}
                 className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X size={18} />
@@ -115,7 +181,7 @@ function ListingModal({ isOpen, onClose }) {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="상품명"
+                placeholder={t('listingTitlePlaceholder')}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
                 required
               />
@@ -125,7 +191,7 @@ function ListingModal({ isOpen, onClose }) {
                   min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="가격 (원)"
+                  placeholder={t('listingPricePlaceholder')}
                   disabled={isFreeShare}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-900 dark:disabled:text-slate-500"
                 />
@@ -135,10 +201,13 @@ function ListingModal({ isOpen, onClose }) {
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                 >
                   {categoryGroups.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
+                    <optgroup
+                      key={group.id}
+                      label={getCategoryGroupLabel(group.id, t)}
+                    >
                       {group.items.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.label}
+                          {getCategoryLabel(item.id, t)}
                         </option>
                       ))}
                     </optgroup>
@@ -155,12 +224,12 @@ function ListingModal({ isOpen, onClose }) {
                   }}
                   className="h-4 w-4 accent-[#1b76fb]"
                 />
-                무료나눔
+                {t('freeShare')}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="물품 상태, 픽업 장소(동·호실) 등을 적어 주세요"
+                placeholder={t('listingDescriptionPlaceholder')}
                 rows={4}
                 className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
@@ -171,7 +240,7 @@ function ListingModal({ isOpen, onClose }) {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 py-3 text-sm font-medium text-slate-600 transition hover:border-[#1b76fb]/40 hover:text-[#1b76fb] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-[#5b9dff]"
               >
                 <ImagePlus size={16} />
-                사진 업로드 ({photos.length}/6)
+                {t('listingPhotoUpload', { count: photos.length })}
               </button>
               <input
                 ref={fileInputRef}
@@ -198,7 +267,7 @@ function ListingModal({ isOpen, onClose }) {
                         type="button"
                         onClick={() => handleRemovePhoto(photo.id)}
                         className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition group-hover:opacity-100"
-                        aria-label="사진 제거"
+                        aria-label={t('listingRemovePhoto')}
                       >
                         <X size={14} />
                       </button>
@@ -211,15 +280,17 @@ function ListingModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                  disabled={isSubmitting}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  취소
+                  {t('listingCancel')}
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#1b76fb] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1667d8]"
+                  disabled={isSubmitting}
+                  className="rounded-lg bg-[#1b76fb] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1667d8] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  임시 등록
+                  {isSubmitting ? t('listingUploading') : t('listingSubmitDraft')}
                 </button>
               </div>
             </form>

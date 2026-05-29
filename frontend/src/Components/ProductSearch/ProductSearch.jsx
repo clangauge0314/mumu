@@ -1,8 +1,12 @@
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from '../../hooks/useTranslation'
-import { categoryGroups, getCategoryLabel } from '../../config/categories'
-import { filterConfig } from '../../config/filters'
+import {
+  categoryGroups,
+  getCategoryGroupLabel,
+  getCategoryLabel,
+} from '../../config/categories'
+import { getSortOptions } from '../../config/filters'
 import { useFilterStore } from '../../store/useFilterStore'
 import {
   getActiveFilterCount,
@@ -49,9 +53,9 @@ function CategoryFilter({ value, onChange, t }) {
         </button>
       </div>
       {categoryGroups.map((group) => (
-        <div key={group.label}>
+        <div key={group.id}>
           <p className="mb-2 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-            {group.label}
+            {getCategoryGroupLabel(group.id, t)}
           </p>
           <div className="flex flex-wrap gap-2">
             {group.items.map((item) => (
@@ -61,7 +65,7 @@ function CategoryFilter({ value, onChange, t }) {
                 onClick={() => onChange(item.id)}
                 className={chipClass(value === item.id)}
               >
-                {item.label}
+                {getCategoryLabel(item.id, t)}
               </button>
             ))}
           </div>
@@ -121,7 +125,7 @@ function PriceFilter({ t }) {
             inputMode="numeric"
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
-            placeholder={filterConfig.price.minPlaceholder}
+            placeholder={t('priceMinPlaceholder')}
             disabled={freeOnly}
             className={inputClass}
           />
@@ -132,7 +136,7 @@ function PriceFilter({ t }) {
             inputMode="numeric"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder={filterConfig.price.maxPlaceholder}
+            placeholder={t('priceMaxPlaceholder')}
             disabled={freeOnly}
             className={inputClass}
           />
@@ -165,7 +169,7 @@ function PriceFilter({ t }) {
 }
 
 function ProductSearch() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const query = useFilterStore((s) => s.query)
   const category = useFilterStore((s) => s.category)
   const minPrice = useFilterStore((s) => s.minPrice)
@@ -191,9 +195,10 @@ function ProductSearch() {
     sort,
   })
 
-  const categoryLabel = getCategoryLabel(category)
-  const priceLabel = getPriceFilterLabel(minPrice, maxPrice, freeOnly)
-  const sortLabel = filterConfig.sortOptions.find((s) => s.id === sort)?.label
+  const categoryLabel = getCategoryLabel(category, t)
+  const priceLabel = getPriceFilterLabel(minPrice, maxPrice, freeOnly, t, locale)
+  const sortLabel = t(`sort_${sort}`)
+  const sortOptions = getSortOptions(t)
 
   const showChips =
     category !== 'all' ||
@@ -300,7 +305,7 @@ function ProductSearch() {
               <PriceFilter t={t} />
               <OptionGroup
                 title={t('sort')}
-                options={filterConfig.sortOptions}
+                options={sortOptions}
                 value={sort}
                 onChange={setSort}
               />

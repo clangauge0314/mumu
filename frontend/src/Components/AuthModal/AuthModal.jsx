@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { toast } from 'sonner'
-import { branding } from '../../config/branding'
+import { i18nToast } from '../../utils/i18nToast'
 import { useTranslation } from '../../hooks/useTranslation'
 import {
   ensureGoogleProfile,
@@ -12,7 +11,6 @@ import {
   signUpWithEmail,
 } from '../../services/authService'
 import { useAuthStore } from '../../store/useAuthStore'
-import { getFirebaseAuthErrorMessage } from '../../utils/firebaseAuthErrors'
 import {
   digitsFromRoom,
   formatRoomLocation,
@@ -61,9 +59,9 @@ function AuthModal() {
 
     try {
       if (mode === 'signup') {
-        const roomError = roomValidationMessage(roomNumber)
+        const roomError = roomValidationMessage(roomNumber, t)
         if (roomError) {
-          toast.error(roomError)
+          i18nToast.error(roomError)
           return
         }
         const location = formatRoomLocation(roomNumber)
@@ -75,18 +73,18 @@ function AuthModal() {
           location,
         })
         setUser(appUser)
-        toast.success(t('signupSuccess'))
+        i18nToast.success(t('signupSuccess'))
       } else {
         const appUser = await signInWithEmail({
           email: email.trim(),
           password,
         })
         setUser(appUser)
-        toast.success(t('loginSuccess'))
+        i18nToast.success(t('loginSuccess'))
       }
       closeAuthModal()
     } catch (err) {
-      toast.error(getFirebaseAuthErrorMessage(err))
+      i18nToast.authError(err)
     } finally {
       setLoading(false)
     }
@@ -99,9 +97,9 @@ function AuthModal() {
       const firebaseUser = await signInWithGoogle()
 
       if (mode === 'signup') {
-        const roomError = roomValidationMessage(roomNumber)
+        const roomError = roomValidationMessage(roomNumber, t)
         if (roomError) {
-          toast.error(roomError)
+          i18nToast.error(roomError)
           return
         }
         const location = formatRoomLocation(roomNumber)
@@ -111,17 +109,17 @@ function AuthModal() {
           location,
         })
         setUser(existing)
-        toast.success(t('signupSuccess'))
+        i18nToast.success(t('signupSuccess'))
       } else {
         const appUser = await ensureUserDocument(firebaseUser, 'google')
         setUser(appUser)
-        toast.success(t('loginSuccess'))
+        i18nToast.success(t('loginSuccess'))
       }
 
       closeAuthModal()
     } catch (err) {
       if (err?.code !== 'auth/popup-closed-by-user') {
-        toast.error(getFirebaseAuthErrorMessage(err))
+        i18nToast.authError(err)
       }
     } finally {
       setLoading(false)
@@ -149,7 +147,7 @@ function AuthModal() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#1b76fb]">
-                  {branding.dormName}
+                  {t('dormName')}
                 </p>
                 <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-50">
                   {mode === 'login' ? t('login') : t('signup')}

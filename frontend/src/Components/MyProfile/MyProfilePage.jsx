@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, LogOut, Mail, MapPin, User } from 'lucide-react'
-import { toast } from 'sonner'
-import { branding } from '../../config/branding'
+import { i18nToast } from '../../utils/i18nToast'
 import { useTranslation } from '../../hooks/useTranslation'
-import { updateUserProfile } from '../../services/authService'
+import { deleteUserAccount, updateUserProfile } from '../../services/authService'
 import { useAppStore } from '../../store/useAppStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import { getFirebaseAuthErrorMessage } from '../../utils/firebaseAuthErrors'
 import {
   digitsFromRoom,
   formatRoomLocation,
@@ -36,6 +34,9 @@ function MyProfilePage() {
   const [location, setLocation] = useState('')
   const [loading, setLoading] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [reauthPassword, setReauthPassword] = useState('')
+  const [showReauthPassword, setShowReauthPassword] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -45,7 +46,7 @@ function MyProfilePage() {
 
   useEffect(() => {
     if (user?.profileError) {
-      toast.warning(t('profileLoadWarn'))
+      i18nToast.warning(t('profileLoadWarn'))
     }
   }, [user?.profileError, user?.id, t])
 
@@ -53,9 +54,9 @@ function MyProfilePage() {
     event.preventDefault()
     if (!user) return
 
-    const roomError = roomValidationMessage(location)
+    const roomError = roomValidationMessage(location, t)
     if (roomError) {
-      toast.error(roomError)
+      i18nToast.error(roomError)
       return
     }
 
@@ -67,13 +68,9 @@ function MyProfilePage() {
         location: formatRoomLocation(location),
       })
       setUser(updated)
-      toast.success(t('savedProfile'))
+      i18nToast.success(t('savedProfile'))
     } catch (err) {
-      toast.error(
-        err.message && !err.code
-          ? err.message
-          : getFirebaseAuthErrorMessage(err),
-      )
+      i18nToast.authError(err)
     } finally {
       setLoading(false)
     }
@@ -84,11 +81,33 @@ function MyProfilePage() {
     try {
       await logout()
       goHome()
-      toast.success(t('logoutSuccess'))
+      i18nToast.success(t('logoutSuccess'))
     } catch {
-      toast.error(t('logoutFailed'))
+      i18nToast.error(t('logoutFailed'))
     } finally {
       setLoggingOut(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm(t('deleteAccountConfirm'))) return
+
+    setDeletingAccount(true)
+    try {
+      await deleteUserAccount({
+        password: showReauthPassword ? reauthPassword : undefined,
+      })
+      goHome()
+      i18nToast.success(t('deleteAccountSuccess'))
+    } catch (err) {
+      if (err?.code === 'auth/requires-recent-login' || err?.key === 'authErrorReauthRequired') {
+        setShowReauthPassword(true)
+        i18nToast.warning(t('deleteAccountReauthHint'))
+      } else {
+        i18nToast.error(t('deleteAccountFailed'))
+      }
+    } finally {
+      setDeletingAccount(false)
     }
   }
 
@@ -150,7 +169,7 @@ function MyProfilePage() {
             {t('myInfoTitle')}
           </h1>
           <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            {branding.dormName}
+            {t('dormName')}
           </p>
         </div>
       </div>
@@ -224,11 +243,11 @@ function MyProfilePage() {
           </button>
         </form>
 
-        <div className="mt-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+        <div className="mt-2 space-y-2 border-t border-slate-100 pt-2 dark:border-slate-800">
           <button
             type="button"
             onClick={handleLogout}
-            disabled={loading || loggingOut}
+            disabled={loading || loggingOut || deletingAccount}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             {loggingOut ? (
@@ -237,6 +256,28 @@ function MyProfilePage() {
               <LogOut size={16} />
             )}
             {loggingOut ? t('loggingOut') : t('logout')}
+          </button>
+
+          {showReauthPassword && user.provider === 'email' && (
+            <input
+              type="password"
+              value={reauthPassword}
+              onChange={(e) => setReauthPassword(e.target.value)}
+              placeholder={t('password')}
+              disabled={deletingAccount}
+              className={inputClass}
+              autoComplete="current-password"
+            />
+          )}
+
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={loading || loggingOut || deletingAccount}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/40"
+          >
+            {deletingAccount && <Loader2 size={16} className="animate-spin" />}
+            {deletingAccount ? t('deletingAccount') : t('deleteAccount')}
           </button>
         </div>
       </div>

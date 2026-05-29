@@ -3,6 +3,9 @@ import { scrollToTop } from '../utils/scrollToTop'
 
 export const useAppStore = create((set) => ({
   page: 'home',
+  fabMenuOpen: false,
+
+  setFabMenuOpen: (fabMenuOpen) => set({ fabMenuOpen }),
 
   setPage: (page) => {
     set({ page })
@@ -10,12 +13,12 @@ export const useAppStore = create((set) => ({
   },
 
   goHome: () => {
-    set({ page: 'home' })
+    set({ page: 'home', fabMenuOpen: false })
     scrollToTop()
   },
 
   openProfile: () => {
-    set({ page: 'profile' })
+    set({ page: 'profile', fabMenuOpen: false })
     scrollToTop()
   },
 }))
