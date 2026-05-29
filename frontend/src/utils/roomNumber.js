@@ -10,6 +10,18 @@ export function formatRoomLocation(roomNumber) {
   return `${digits}호`
 }
 
+/** Google 가입 시 호실 미입력 → 프로필에서 수정 */
+export const GOOGLE_SIGNUP_DEFAULT_ROOM_DIGITS = '000'
+
+export function defaultGoogleSignupLocation() {
+  return formatRoomLocation(GOOGLE_SIGNUP_DEFAULT_ROOM_DIGITS)
+}
+
+/** Google 가입 임시 호실(000호) — 출품 전 프로필 수정 필요 */
+export function isPlaceholderRoom(location) {
+  return digitsFromRoom(location) === GOOGLE_SIGNUP_DEFAULT_ROOM_DIGITS
+}
+
 export function parseRoomForInput(location) {
   return digitsFromRoom(location)
 }

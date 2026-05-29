@@ -1,12 +1,16 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ProductCard from '../ProductCard/ProductCard'
 import ProductSearch from '../ProductSearch/ProductSearch'
-import { products } from '../../data/products'
 import { useFilterStore } from '../../store/useFilterStore'
 import { filterProducts } from '../../utils/filterProducts'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
+import { useListings } from '../../hooks/useListings'
+import { useAuthStore } from '../../store/useAuthStore'
+import { useAppStore } from '../../store/useAppStore'
+import { deleteListing } from '../../services/listingService'
+import { i18nToast } from '../../utils/i18nToast'
 
 const listVariants = {
   hidden: { opacity: 0 },
@@ -70,16 +74,44 @@ function LoadMoreSentinel({
 
 function ProductGrid() {
   const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const openListingModal = useAppStore((s) => s.openListingModal)
+  const openListingDetail = useAppStore((s) => s.openListingDetail)
+  const { products, remoteLoaded } = useListings()
+  const [deletingId, setDeletingId] = useState(null)
+
+  const handleDelete = async (product) => {
+    if (!window.confirm(t('listingDeleteConfirm'))) return
+    setDeletingId(product.id)
+    try {
+      await deleteListing(product.id)
+      i18nToast.success('listingDeletedSuccess')
+    } catch {
+      i18nToast.error('listingDeleteFailed')
+    } finally {
+      setDeletingId(null)
+    }
+  }
   const query = useFilterStore((s) => s.query)
   const category = useFilterStore((s) => s.category)
   const minPrice = useFilterStore((s) => s.minPrice)
   const maxPrice = useFilterStore((s) => s.maxPrice)
   const freeOnly = useFilterStore((s) => s.freeOnly)
   const sort = useFilterStore((s) => s.sort)
+  const dataVersion = products.length
 
   const filterKey = useMemo(
-    () => JSON.stringify({ query, category, minPrice, maxPrice, freeOnly, sort }),
-    [query, category, minPrice, maxPrice, freeOnly, sort],
+    () =>
+      JSON.stringify({
+        query,
+        category,
+        minPrice,
+        maxPrice,
+        freeOnly,
+        sort,
+        dataVersion,
+      }),
+    [query, category, minPrice, maxPrice, freeOnly, sort, dataVersion],
   )
 
   const filtered = useMemo(
@@ -92,7 +124,7 @@ function ProductGrid() {
         freeOnly,
         sort,
       }),
-    [filterKey],
+    [products, filterKey],
   )
 
   const { visibleItems, hasMore, isLoading, sentinelRef, totalCount, loadedCount } =
@@ -128,7 +160,24 @@ function ProductGrid() {
       <ProductSearch />
 
       <AnimatePresence mode="wait">
-        {filtered.length > 0 ? (
+        {!remoteLoaded ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-20"
+          >
+            <motion.span
+              className="h-9 w-9 rounded-full border-2 border-[#1b76fb]/25 border-t-[#1b76fb]"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.75, repeat: Infinity, ease: 'linear' }}
+            />
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+              {t('loadingProducts')}
+            </p>
+          </motion.div>
+        ) : filtered.length > 0 ? (
           <motion.div
             key={filterKey}
             initial={{ opacity: 0 }}
@@ -148,6 +197,11 @@ function ProductGrid() {
                     key={product.id}
                     product={product}
                     index={index}
+                    isOwner={Boolean(user?.id && product.sellerId === user.id)}
+                    onOpen={(item) => openListingDetail(item.id)}
+                    onEdit={openListingModal}
+                    onDelete={handleDelete}
+                    isDeleting={deletingId === product.id}
                   />
                 ))}
               </AnimatePresence>
@@ -177,7 +231,7 @@ function ProductGrid() {
               transition={{ delay: 0.05 }}
               className="text-sm font-medium text-slate-700 dark:text-slate-200"
             >
-              {t('noResults')}
+              {products.length === 0 ? t('listingEmpty') : t('noResults')}
             </motion.p>
             <motion.p
               initial={{ y: 8, opacity: 0 }}
@@ -185,7 +239,9 @@ function ProductGrid() {
               transition={{ delay: 0.1 }}
               className="mt-1 text-xs text-slate-500 dark:text-slate-400"
             >
-              {t('emptySearchHint')}
+              {products.length === 0
+                ? t('listingEmptyHint')
+                : t('emptySearchHint')}
             </motion.p>
           </motion.div>
         )}

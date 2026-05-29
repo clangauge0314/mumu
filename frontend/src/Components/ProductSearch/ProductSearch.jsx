@@ -8,6 +8,7 @@ import {
 } from '../../config/categories'
 import { getSortOptions } from '../../config/filters'
 import { useFilterStore } from '../../store/useFilterStore'
+import PriceInput from '../PriceInput/PriceInput'
 import {
   getActiveFilterCount,
   getPriceFilterLabel,
@@ -119,23 +120,17 @@ function PriceFilter({ t }) {
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <input
-            type="number"
-            min="0"
-            inputMode="numeric"
+          <PriceInput
             value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
+            onChange={setMinPrice}
             placeholder={t('priceMinPlaceholder')}
             disabled={freeOnly}
             className={inputClass}
           />
           <span className="shrink-0 text-sm text-slate-400 dark:text-slate-500">~</span>
-          <input
-            type="number"
-            min="0"
-            inputMode="numeric"
+          <PriceInput
             value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
+            onChange={setMaxPrice}
             placeholder={t('priceMaxPlaceholder')}
             disabled={freeOnly}
             className={inputClass}

@@ -1,8 +1,9 @@
-import { formatPriceAmount } from './formatProductPrice'
+import { formatPriceAmount, parsePriceDigits } from './formatProductPrice'
 
 export function parsePriceInput(value) {
-  if (value === '' || value == null) return null
-  const num = Number(String(value).replace(/,/g, ''))
+  const digits = parsePriceDigits(value)
+  if (!digits) return null
+  const num = Number(digits)
   return Number.isFinite(num) && num >= 0 ? num : null
 }
 
@@ -14,11 +15,18 @@ export function filterProducts(
 
   if (query.trim()) {
     const q = query.trim().toLowerCase()
-    result = result.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.location.toLowerCase().includes(q),
-    )
+    result = result.filter((p) => {
+      const haystack = [
+        p.title,
+        p.location,
+        p.sellerNickname,
+        p.locationLabel,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
   }
 
   if (category !== 'all') {
@@ -50,7 +58,7 @@ export function filterProducts(
       result.sort((a, b) => b.likes - a.likes)
       break
     default:
-      result.sort((a, b) => a.id - b.id)
+      result.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0))
   }
 
   return result
@@ -65,15 +73,15 @@ export function getPriceFilterLabel(minPrice, maxPrice, freeOnly, t, locale) {
   if (min == null && max == null) return null
   if (min != null && max != null) {
     return t('priceRange', {
-      min: formatPriceAmount(min, locale),
-      max: formatPriceAmount(max, locale),
+      min: formatPriceAmount(min),
+      max: formatPriceAmount(max),
     })
   }
   if (min != null) {
-    return t('priceMinOnly', { amount: formatPriceAmount(min, locale) })
+    return t('priceMinOnly', { amount: formatPriceAmount(min) })
   }
   if (max != null) {
-    return t('priceMaxOnly', { amount: formatPriceAmount(max, locale) })
+    return t('priceMaxOnly', { amount: formatPriceAmount(max) })
   }
   return null
 }

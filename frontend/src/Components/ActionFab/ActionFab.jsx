@@ -19,10 +19,11 @@ import { useThemeStore } from '../../store/useThemeStore'
 import { useTranslation } from '../../hooks/useTranslation'
 import { i18nToast } from '../../utils/i18nToast'
 
-function ActionFab({ onOpenListingModal }) {
+function ActionFab() {
   const { t } = useTranslation()
   const fabMenuOpen = useAppStore((state) => state.fabMenuOpen)
   const setFabMenuOpen = useAppStore((state) => state.setFabMenuOpen)
+  const openListingModal = useAppStore((state) => state.openListingModal)
   const goHome = useAppStore((state) => state.goHome)
   const openProfile = useAppStore((state) => state.openProfile)
   const user = useAuthStore((state) => state.user)
@@ -95,7 +96,9 @@ function ActionFab({ onOpenListingModal }) {
       openAuthModal('login')
       return
     }
-    onOpenListingModal?.()
+    if (openListingModal() === false) {
+      i18nToast.warning('listingRoomPlaceholderWarn')
+    }
   }
 
   const handleLanguage = () => {

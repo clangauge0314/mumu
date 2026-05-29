@@ -13,8 +13,17 @@ import {
 } from 'firebase/auth'
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import {
+  deleteAllListingsBySeller,
+  syncListingsSellerProfile,
+} from './listingService'
 import { createAppError } from '../utils/firebaseAuthErrors'
-import { formatRoomLocation, getRoomValidationErrorKey } from '../utils/roomNumber'
+import { normalizeStoredContactId } from '../utils/contactId'
+import {
+  defaultGoogleSignupLocation,
+  formatRoomLocation,
+  getRoomValidationErrorKey,
+} from '../utils/roomNumber'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -51,13 +60,18 @@ export async function saveUserProfile(uid, data, { isNew = false } = {}) {
   await setDoc(doc(db, 'users', uid), payload, { merge: true })
 }
 
-function buildFirestoreProfile(firebaseUser, { nickname, location, provider }) {
+function buildFirestoreProfile(
+  firebaseUser,
+  { nickname, location, provider, instagramId, lineId },
+) {
   const resolvedNickname = resolveNickname(firebaseUser, nickname)
 
   return {
     email: firebaseUser.email ?? '',
     nickname: resolvedNickname,
     location: location?.trim() || null,
+    instagramId: normalizeStoredContactId(instagramId),
+    lineId: normalizeStoredContactId(lineId),
     photoURL: firebaseUser.photoURL ?? null,
     provider,
   }
@@ -76,6 +90,8 @@ export function mapAppUser(firebaseUser, profile, { profileError = false } = {})
     location,
     photoURL: profile?.photoURL ?? firebaseUser.photoURL ?? null,
     provider: profile?.provider ?? null,
+    instagramId: normalizeStoredContactId(profile?.instagramId),
+    lineId: normalizeStoredContactId(profile?.lineId),
     hasProfile,
     profileError,
   }
@@ -102,12 +118,24 @@ export async function ensureUserDocument(firebaseUser, provider) {
     return resolveAppUser(firebaseUser)
   }
 
-  const profile = buildFirestoreProfile(firebaseUser, { provider })
+  const profile = buildFirestoreProfile(firebaseUser, {
+    provider,
+    location: provider === 'google' ? defaultGoogleSignupLocation() : null,
+    instagramId: null,
+    lineId: null,
+  })
   await saveUserProfile(firebaseUser.uid, profile, { isNew: true })
   return mapAppUser(firebaseUser, profile)
 }
 
-export async function signUpWithEmail({ email, password, nickname, location }) {
+export async function signUpWithEmail({
+  email,
+  password,
+  nickname,
+  location,
+  instagramId,
+  lineId,
+}) {
   const cred = await createUserWithEmailAndPassword(auth, email, password)
   const displayName = resolveNickname(cred.user, nickname)
 
@@ -117,6 +145,8 @@ export async function signUpWithEmail({ email, password, nickname, location }) {
     nickname: displayName,
     location,
     provider: 'email',
+    instagramId,
+    lineId,
   })
 
   await saveUserProfile(cred.user.uid, profile, { isNew: true })
@@ -134,13 +164,18 @@ export async function signInWithGoogle() {
   return cred.user
 }
 
-export async function completeGoogleSignUp(firebaseUser, { nickname, location }) {
+export async function completeGoogleSignUp(
+  firebaseUser,
+  { nickname, location, instagramId, lineId },
+) {
   const displayName = resolveNickname(firebaseUser, nickname)
 
   const profile = buildFirestoreProfile(firebaseUser, {
     nickname: displayName,
-    location,
+    location: location?.trim() || defaultGoogleSignupLocation(),
     provider: 'google',
+    instagramId,
+    lineId,
   })
 
   await saveUserProfile(firebaseUser.uid, profile, { isNew: true })
@@ -152,14 +187,22 @@ export async function completeGoogleSignUp(firebaseUser, { nickname, location })
   return mapAppUser(firebaseUser, profile)
 }
 
-export async function ensureGoogleProfile(firebaseUser, { nickname, location }) {
+export async function ensureGoogleProfile(
+  firebaseUser,
+  { nickname, location, instagramId, lineId },
+) {
   const existing = await getUserProfile(firebaseUser.uid)
   if (existing) return resolveAppUser(firebaseUser)
 
-  return completeGoogleSignUp(firebaseUser, { nickname, location })
+  return completeGoogleSignUp(firebaseUser, {
+    nickname,
+    location,
+    instagramId,
+    lineId,
+  })
 }
 
-export async function updateUserProfile(uid, { nickname, location }) {
+export async function updateUserProfile(uid, { nickname, location, instagramId, lineId }) {
   const firebaseUser = auth.currentUser
   if (!firebaseUser || firebaseUser.uid !== uid) {
     throw createAppError('authErrorNotLoggedIn')
@@ -180,10 +223,18 @@ export async function updateUserProfile(uid, { nickname, location }) {
     nickname: trimmedNickname,
     location: trimmedLocation,
     provider,
+    instagramId,
+    lineId,
   })
 
   await saveUserProfile(uid, profile)
   await updateProfile(firebaseUser, { displayName: trimmedNickname })
+  await syncListingsSellerProfile(uid, {
+    nickname: trimmedNickname,
+    location: trimmedLocation,
+    instagramId: profile.instagramId,
+    lineId: profile.lineId,
+  })
 
   return mapAppUser(firebaseUser, profile)
 }
@@ -225,6 +276,7 @@ export async function deleteUserAccount({ password } = {}) {
   if (!firebaseUser) throw createAppError('authErrorNotLoggedIn')
 
   const runDelete = async (user) => {
+    await deleteAllListingsBySeller(user.uid)
     await deleteFirestoreProfile(user.uid)
     await deleteUser(user)
   }

@@ -6,6 +6,7 @@ import ListingModal from './Components/ListingModal/ListingModal'
 import Navbar from './Components/Navbar/Navbar'
 import MyProfilePage from './Components/MyProfile/MyProfilePage'
 import ProductGrid from './Components/ProductGrid/ProductGrid'
+import ProductDetailPage from './Components/ProductDetail/ProductDetailPage'
 import AppToaster from './Components/AppToaster/AppToaster'
 import LanguageModal from './Components/LanguageModal/LanguageModal'
 import ActionFab from './Components/ActionFab/ActionFab'
@@ -17,7 +18,9 @@ function App() {
   const { t } = useTranslation()
   const page = useAppStore((state) => state.page)
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const [isListingModalOpen, setIsListingModalOpen] = useState(false)
+  const listingModalOpen = useAppStore((state) => state.listingModalOpen)
+  const editingListing = useAppStore((state) => state.editingListing)
+  const closeListingModal = useAppStore((state) => state.closeListingModal)
 
   useEffect(() => {
     const onScroll = () => {
@@ -29,15 +32,14 @@ function App() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const openListingModal = () => setIsListingModalOpen(true)
-  const closeListingModal = () => setIsListingModalOpen(false)
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
       <Navbar />
 
       <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-        {page === 'profile' ? <MyProfilePage /> : <ProductGrid />}
+        {page === 'profile' && <MyProfilePage />}
+        {page === 'listing' && <ProductDetailPage />}
+        {page === 'home' && <ProductGrid />}
       </main>
 
       <AnimatePresence>
@@ -59,10 +61,11 @@ function App() {
 
       <AuthModal />
       <ListingModal
-        isOpen={isListingModalOpen}
+        isOpen={listingModalOpen}
+        editListing={editingListing}
         onClose={closeListingModal}
       />
-      <ActionFab onOpenListingModal={openListingModal} />
+      <ActionFab />
       <LanguageModal />
       <AppToaster />
     </div>

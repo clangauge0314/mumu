@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, LogOut, Mail, MapPin, User } from 'lucide-react'
+import { ArrowLeft, Loader2, LogOut, Mail, User } from 'lucide-react'
 import { i18nToast } from '../../utils/i18nToast'
 import { useTranslation } from '../../hooks/useTranslation'
 import { deleteUserAccount, updateUserProfile } from '../../services/authService'
 import { useAppStore } from '../../store/useAppStore'
 import { useAuthStore } from '../../store/useAuthStore'
+import AuthFormField from '../AuthModal/AuthFormField'
 import {
   digitsFromRoom,
   formatRoomLocation,
   parseRoomForInput,
   roomValidationMessage,
 } from '../../utils/roomNumber'
+import { contactIdForInput } from '../../utils/contactId'
+import MyListingsSection from './MyListingsSection'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500'
@@ -32,6 +35,8 @@ function MyProfilePage() {
 
   const [nickname, setNickname] = useState('')
   const [location, setLocation] = useState('')
+  const [instagramId, setInstagramId] = useState('')
+  const [lineId, setLineId] = useState('')
   const [loading, setLoading] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
@@ -42,6 +47,8 @@ function MyProfilePage() {
     if (!user) return
     setNickname(user.nickname ?? '')
     setLocation(parseRoomForInput(user.location))
+    setInstagramId(contactIdForInput(user.instagramId))
+    setLineId(contactIdForInput(user.lineId))
   }, [user])
 
   useEffect(() => {
@@ -66,6 +73,8 @@ function MyProfilePage() {
       const updated = await updateUserProfile(user.id, {
         nickname,
         location: formatRoomLocation(location),
+        instagramId: instagramId.trim(),
+        lineId: lineId.trim(),
       })
       setUser(updated)
       i18nToast.success(t('savedProfile'))
@@ -201,12 +210,9 @@ function MyProfilePage() {
         </dl>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              <User size={14} />
-              {t('nickname')}
-            </label>
+          <AuthFormField label={t('nickname')} required htmlFor="profile-nickname">
             <input
+              id="profile-nickname"
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
@@ -214,13 +220,11 @@ function MyProfilePage() {
               required
               className={inputClass}
             />
-          </div>
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              <MapPin size={14} />
-              {t('roomLabel')}
-            </label>
+          </AuthFormField>
+
+          <AuthFormField label={t('roomLabel')} required htmlFor="profile-room">
             <input
+              id="profile-room"
               type="text"
               inputMode="numeric"
               autoComplete="off"
@@ -232,7 +236,33 @@ function MyProfilePage() {
               required
               className={inputClass}
             />
-          </div>
+          </AuthFormField>
+
+          <AuthFormField label={t('instagramLabel')} htmlFor="profile-instagram">
+            <input
+              id="profile-instagram"
+              type="text"
+              value={instagramId}
+              onChange={(e) => setInstagramId(e.target.value)}
+              placeholder={t('instagramPlaceholder')}
+              disabled={loading}
+              autoComplete="off"
+              className={inputClass}
+            />
+          </AuthFormField>
+
+          <AuthFormField label={t('lineLabel')} htmlFor="profile-line">
+            <input
+              id="profile-line"
+              type="text"
+              value={lineId}
+              onChange={(e) => setLineId(e.target.value)}
+              placeholder={t('linePlaceholder')}
+              disabled={loading}
+              autoComplete="off"
+              className={inputClass}
+            />
+          </AuthFormField>
           <button
             type="submit"
             disabled={loading || loggingOut}
@@ -281,6 +311,8 @@ function MyProfilePage() {
           </button>
         </div>
       </div>
+
+      <MyListingsSection userId={user.id} />
     </motion.section>
   )
 }

@@ -12,10 +12,15 @@ import {
 } from '../../services/authService'
 import { useAuthStore } from '../../store/useAuthStore'
 import {
+  defaultGoogleSignupLocation,
   digitsFromRoom,
   formatRoomLocation,
   roomValidationMessage,
 } from '../../utils/roomNumber'
+import AuthFormField from './AuthFormField'
+
+const inputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500'
 
 function AuthModal() {
   const { t } = useTranslation()
@@ -27,6 +32,8 @@ function AuthModal() {
 
   const [nickname, setNickname] = useState('')
   const [roomNumber, setRoomNumber] = useState('')
+  const [instagramId, setInstagramId] = useState('')
+  const [lineId, setLineId] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,6 +60,11 @@ function AuthModal() {
     setLoading(false)
   }, [isOpen, mode])
 
+  const contactPayload = () => ({
+    instagramId: instagramId.trim(),
+    lineId: lineId.trim(),
+  })
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setLoading(true)
@@ -71,6 +83,7 @@ function AuthModal() {
           password,
           nickname: nickname.trim(),
           location,
+          ...contactPayload(),
         })
         setUser(appUser)
         i18nToast.success(t('signupSuccess'))
@@ -97,16 +110,10 @@ function AuthModal() {
       const firebaseUser = await signInWithGoogle()
 
       if (mode === 'signup') {
-        const roomError = roomValidationMessage(roomNumber, t)
-        if (roomError) {
-          i18nToast.error(roomError)
-          return
-        }
-        const location = formatRoomLocation(roomNumber)
-
         const existing = await ensureGoogleProfile(firebaseUser, {
           nickname: nickname.trim(),
-          location,
+          location: defaultGoogleSignupLocation(),
+          ...contactPayload(),
         })
         setUser(existing)
         i18nToast.success(t('signupSuccess'))
@@ -141,7 +148,7 @@ function AuthModal() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6 dark:bg-slate-900 dark:shadow-black/50"
+            className="max-h-[min(92vh,720px)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6 dark:bg-slate-900 dark:shadow-black/50"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
@@ -210,11 +217,7 @@ function AuthModal() {
                 onClick={handleGoogleAuth}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 transition hover:border-[#1b76fb]/40 hover:bg-[#1b76fb]/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-[#1b76fb]/20"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                   <path
                     fill="#EA4335"
                     d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.5-5.5 3.5-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 2.9 14.7 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.8 0 9.6-4.1 9.6-9.8 0-.7-.1-1.3-.2-2H12z"
@@ -234,25 +237,35 @@ function AuthModal() {
                 </span>
               </div>
 
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('email')}
-                disabled={loading}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+              <AuthFormField label={t('email')} required htmlFor="auth-email">
+                <input
+                  id="auth-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className={inputClass}
+                  required
+                />
+              </AuthFormField>
+
+              <AuthFormField
+                label={mode === 'login' ? t('password') : t('passwordSignup')}
                 required
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'login' ? t('password') : t('passwordSignup')}
-                disabled={loading}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
-                required
-                minLength={mode === 'signup' ? 6 : undefined}
-              />
+                htmlFor="auth-password"
+              >
+                <input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  className={inputClass}
+                  required
+                  minLength={mode === 'signup' ? 6 : undefined}
+                />
+              </AuthFormField>
+
               <AnimatePresence mode="wait">
                 {mode === 'signup' && (
                   <motion.div
@@ -263,28 +276,61 @@ function AuthModal() {
                     transition={{ duration: 0.24 }}
                     className="space-y-3"
                   >
-                    <input
-                      type="text"
-                      value={nickname}
-                      onChange={(e) => setNickname(e.target.value)}
-                      placeholder={t('nickname')}
-                      disabled={loading}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
-                    />
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      maxLength={3}
-                      value={roomNumber}
-                      onChange={(e) =>
-                        setRoomNumber(digitsFromRoom(e.target.value))
-                      }
-                      placeholder={t('roomPlaceholder')}
-                      disabled={loading}
-                      required
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
-                    />
+                    <AuthFormField label={t('nickname')} required htmlFor="auth-nickname">
+                      <input
+                        id="auth-nickname"
+                        type="text"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                        disabled={loading}
+                        className={inputClass}
+                        required
+                      />
+                    </AuthFormField>
+
+                    <AuthFormField label={t('roomLabel')} required htmlFor="auth-room">
+                      <input
+                        id="auth-room"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        maxLength={3}
+                        value={roomNumber}
+                        onChange={(e) =>
+                          setRoomNumber(digitsFromRoom(e.target.value))
+                        }
+                        placeholder={t('roomPlaceholder')}
+                        disabled={loading}
+                        className={inputClass}
+                        required
+                      />
+                    </AuthFormField>
+
+                    <AuthFormField label={t('instagramLabel')} htmlFor="auth-instagram">
+                      <input
+                        id="auth-instagram"
+                        type="text"
+                        value={instagramId}
+                        onChange={(e) => setInstagramId(e.target.value)}
+                        placeholder={t('instagramPlaceholder')}
+                        disabled={loading}
+                        autoComplete="off"
+                        className={inputClass}
+                      />
+                    </AuthFormField>
+
+                    <AuthFormField label={t('lineLabel')} htmlFor="auth-line">
+                      <input
+                        id="auth-line"
+                        type="text"
+                        value={lineId}
+                        onChange={(e) => setLineId(e.target.value)}
+                        placeholder={t('linePlaceholder')}
+                        disabled={loading}
+                        autoComplete="off"
+                        className={inputClass}
+                      />
+                    </AuthFormField>
                   </motion.div>
                 )}
               </AnimatePresence>
