@@ -1,16 +1,29 @@
-# React + Vite
+# mumu
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+무사시노 국제기숙사 중고거래 플랫폼
 
-Currently, two official plugins are available:
+## 구조
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+mumu/
+├── frontend/     # React + Vite 앱
+└── README.md
+```
 
-## React Compiler
+## 로컬 실행
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+`.env`는 `frontend/.env`에 두세요 (`frontend/.env.example` 참고).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 스크립트
+
+| 명령 | 설명 |
+|------|------|
+| `npm run dev` | 개발 서버 (기본 `http://localhost:5173`) |
+| `npm run build` | 프로덕션 빌드 |
+| `npm run preview` | 빌드 결과 미리보기 |
