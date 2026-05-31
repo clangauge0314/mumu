@@ -29,9 +29,27 @@ function ListingTradePanel({
         <ListingStatusBadge status={status} />
       </div>
 
-      {status === LISTING_STATUS.PURCHASE_REQUESTED && listing.buyerNickname && (
+      {isOwner && status === LISTING_STATUS.AVAILABLE && (
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+          {t('tradeStatusHintOwnerAvailable')}
+        </p>
+      )}
+
+      {status === LISTING_STATUS.IN_PROGRESS && !isOwner && !isBuyer && (
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+          {t('tradeStatusHintInProgress')}
+        </p>
+      )}
+
+      {isBuyer && status === LISTING_STATUS.IN_PROGRESS && (
+        <p className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+          {t('tradeStatusHintBuyerInProgress')}
+        </p>
+      )}
+
+      {status === LISTING_STATUS.PURCHASE_REQUESTED && listing.buyerLabel && (
         <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-          {t('tradeBuyerLabel', { name: listing.buyerNickname })}
+          {t('tradeBuyerLabel', { name: listing.buyerLabel })}
         </p>
       )}
 

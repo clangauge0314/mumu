@@ -79,6 +79,7 @@ export async function createListing({
     status: LISTING_STATUS.AVAILABLE,
     buyerId: null,
     buyerNickname: null,
+    buyerLocation: null,
     purchaseRequestedAt: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -126,6 +127,11 @@ function mapListing(docSnap) {
     status: normalizeListingStatus(data.status),
     buyerId: data.buyerId ?? null,
     buyerNickname: data.buyerNickname ?? null,
+    buyerLocation: data.buyerLocation ?? null,
+    buyerLabel: formatListingLocationLabel(
+      data.buyerLocation,
+      data.buyerNickname,
+    ),
     imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
     image: data.imageUrls?.[0] || null,
     createdAtMs: createdAt ? createdAt.getTime() : 0,
@@ -134,7 +140,7 @@ function mapListing(docSnap) {
 
 export async function updateListing(
   listingId,
-  { title, price, isFreeShare, category, description, imageUrls, seller },
+  { title, price, isFreeShare, category, description, imageUrls, seller, status },
 ) {
   const firebaseUser = auth.currentUser
   if (!firebaseUser) throw new Error('LISTING_NOT_AUTHENTICATED')
@@ -155,6 +161,20 @@ export async function updateListing(
     updatedAt: serverTimestamp(),
   }
 
+  if (status !== undefined) {
+    const nextStatus = normalizeListingStatus(status)
+    if (!Object.values(LISTING_STATUS).includes(nextStatus)) {
+      throw new Error('LISTING_STATUS_INVALID')
+    }
+    payload.status = nextStatus
+    if (nextStatus === LISTING_STATUS.AVAILABLE) {
+      payload.buyerId = null
+      payload.buyerNickname = null
+      payload.buyerLocation = null
+      payload.purchaseRequestedAt = null
+    }
+  }
+
   try {
     await updateDoc(doc(db, 'listings', listingId), payload)
   } catch (error) {
@@ -162,7 +182,7 @@ export async function updateListing(
   }
 }
 
-export async function requestPurchase(listingId, { buyerNickname }) {
+export async function requestPurchase(listingId, { buyerNickname, buyerLocation }) {
   const firebaseUser = auth.currentUser
   if (!firebaseUser) throw new Error('LISTING_NOT_AUTHENTICATED')
 
@@ -171,6 +191,7 @@ export async function requestPurchase(listingId, { buyerNickname }) {
       status: LISTING_STATUS.PURCHASE_REQUESTED,
       buyerId: firebaseUser.uid,
       buyerNickname: toText(buyerNickname) || '사용자',
+      buyerLocation: toText(buyerLocation) || null,
       purchaseRequestedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })

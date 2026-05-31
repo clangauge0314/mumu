@@ -2,20 +2,26 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { getListingStatusLabelKey, normalizeListingStatus } from '../../config/listingStatus'
 
 const statusStyles = {
-  available: 'text-emerald-300',
-  purchase_requested: 'text-amber-300',
-  in_progress: 'text-sky-300',
-  completed: 'text-slate-300',
+  available: 'bg-emerald-600 text-white ring-emerald-400/40',
+  purchase_requested: 'bg-amber-400 text-amber-950 ring-amber-200/50',
+  in_progress: 'bg-amber-400 text-amber-950 ring-amber-200/50',
+  completed: 'bg-slate-600 text-slate-200 ring-slate-500/40',
 }
 
-function ListingStatusBadge({ status, className = '' }) {
+const variantStyles = {
+  inline:
+    'inline-flex shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold shadow-sm backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-xs',
+}
+
+function ListingStatusBadge({ status, variant = 'inline', className = '' }) {
   const { t } = useTranslation()
   const normalized = normalizeListingStatus(status)
   const style = statusStyles[normalized] ?? statusStyles.available
+  const variantStyle = variantStyles[variant] ?? variantStyles.inline
 
   return (
     <span
-      className={`inline-flex items-center rounded-md bg-black/80 px-2.5 py-1 text-xs font-semibold text-white shadow-md ring-1 ring-white/15 backdrop-blur-md ${style} ${className}`}
+      className={`inline-flex items-center ring-1 ring-inset ${variantStyle} ${style} ${className}`}
     >
       {t(getListingStatusLabelKey(status))}
     </span>

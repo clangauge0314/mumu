@@ -48,16 +48,19 @@ service cloud.firestore {
 
     function purchaseRequestByBuyer() {
       return resource.data.sellerId != request.auth.uid
-        && listingStatusIsAvailable(resource.data.status)
+        && listingStatusIsAvailable(resource.data)
         && request.resource.data.status == 'purchase_requested'
         && request.resource.data.buyerId == request.auth.uid
         && request.resource.data.sellerId == resource.data.sellerId
         && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'buyerId', 'buyerNickname', 'purchaseRequestedAt', 'updatedAt']);
+            .hasOnly(['status', 'buyerId', 'buyerNickname', 'buyerLocation', 'purchaseRequestedAt', 'updatedAt']);
     }
 
-    function listingStatusIsAvailable(status) {
-      return status == 'available' || status == 'active';
+    function listingStatusIsAvailable(data) {
+      return !('status' in data)
+        || data.status == null
+        || data.status == 'available'
+        || data.status == 'active';
     }
   }
 }

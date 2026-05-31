@@ -19,6 +19,12 @@ import {
   getCategoryGroupLabel,
   getCategoryLabel,
 } from '../../config/categories'
+import {
+  getListingStatusLabelKey,
+  LISTING_STATUS,
+  LISTING_STATUS_OPTIONS,
+  normalizeListingStatus,
+} from '../../config/listingStatus'
 import ListingPhotoGrid from './ListingPhotoGrid'
 import PriceInput from '../PriceInput/PriceInput'
 import { formatPriceInput, parsePriceDigits } from '../../utils/formatProductPrice'
@@ -41,6 +47,7 @@ function ListingModal({ isOpen, onClose, editListing = null }) {
   const [isFreeShare, setIsFreeShare] = useState(false)
   const [category, setCategory] = useState(defaultCategoryId)
   const [description, setDescription] = useState('')
+  const [status, setStatus] = useState(LISTING_STATUS.AVAILABLE)
   const [photos, setPhotos] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef(null)
@@ -95,6 +102,7 @@ function ListingModal({ isOpen, onClose, editListing = null }) {
       setIsFreeShare(editListing.price === 0)
       setCategory(editListing.category ?? defaultCategoryId)
       setDescription(editListing.description ?? '')
+      setStatus(normalizeListingStatus(editListing.status))
       setPhotos(
         (editListing.imageUrls ?? []).map((url, index) => ({
           id: `existing-${index}-${url}`,
@@ -123,6 +131,7 @@ function ListingModal({ isOpen, onClose, editListing = null }) {
     setIsFreeShare(false)
     setCategory(defaultCategoryId)
     setDescription('')
+    setStatus(LISTING_STATUS.AVAILABLE)
     setPhotos((prev) => {
       prev.forEach(revokeBlobPreview)
       return []
@@ -278,7 +287,7 @@ function ListingModal({ isOpen, onClose, editListing = null }) {
       const imageUrls = await buildImageUrls()
 
       if (isEditMode) {
-        await updateListing(editListing.id, { ...listingPayload, imageUrls })
+        await updateListing(editListing.id, { ...listingPayload, imageUrls, status })
         i18nToast.success('listingUpdatedSuccess')
       } else {
         await createListing({ ...listingPayload, imageUrls })
@@ -391,6 +400,35 @@ function ListingModal({ isOpen, onClose, editListing = null }) {
                 />
                 {t('freeShare')}
               </label>
+              {isEditMode && (
+                <div>
+                  <label
+                    htmlFor="listing-status"
+                    className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
+                  >
+                    {t('listingStatusLabel')}
+                  </label>
+                  <select
+                    id="listing-status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#1b76fb] focus:ring-2 focus:ring-[#1b76fb]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    {LISTING_STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {t(getListingStatusLabelKey(option))}
+                      </option>
+                    ))}
+                  </select>
+                  {status === LISTING_STATUS.AVAILABLE &&
+                    normalizeListingStatus(editListing?.status) !==
+                      LISTING_STATUS.AVAILABLE && (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                        {t('listingStatusResetHint')}
+                      </p>
+                    )}
+                </div>
+              )}
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}

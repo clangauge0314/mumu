@@ -38,3 +38,22 @@ export function canRequestPurchase(listing, userId) {
   if (listing.sellerId === userId) return false
   return normalizeListingStatus(listing.status) === LISTING_STATUS.AVAILABLE
 }
+
+export function isListingCompleted(status) {
+  return normalizeListingStatus(status) === LISTING_STATUS.COMPLETED
+}
+
+export function isListingInTrade(status) {
+  const normalized = normalizeListingStatus(status)
+  return (
+    normalized === LISTING_STATUS.PURCHASE_REQUESTED ||
+    normalized === LISTING_STATUS.IN_PROGRESS
+  )
+}
+
+export const LISTING_STATUS_OPTIONS = [
+  LISTING_STATUS.AVAILABLE,
+  LISTING_STATUS.PURCHASE_REQUESTED,
+  LISTING_STATUS.IN_PROGRESS,
+  LISTING_STATUS.COMPLETED,
+]

@@ -108,7 +108,8 @@ function ProductDetailPage() {
 
     setLikePending(true)
     try {
-      await toggleListingLike(listing.id)
+      const likedAfter = await toggleListingLike(listing.id)
+      i18nToast.success(likedAfter ? 'listingLikeSuccess' : 'listingUnlikeSuccess')
     } catch (err) {
       if (err?.message === 'LISTING_NOT_AUTHENTICATED') {
         openAuthModal('login')
@@ -130,11 +131,19 @@ function ProductDetailPage() {
 
     setTradePending(true)
     try {
-      await requestPurchase(listing.id, { buyerNickname: user.nickname })
+      await requestPurchase(listing.id, {
+        buyerNickname: user.nickname,
+        buyerLocation: user.location,
+      })
       i18nToast.success('tradeRequestSuccess')
     } catch (err) {
       if (err?.message === 'LISTING_NOT_AUTHENTICATED') {
         openAuthModal('login')
+      } else if (
+        err?.message === 'LISTING_PERMISSION_DENIED' ||
+        err?.code === 'permission-denied'
+      ) {
+        i18nToast.error('listingFirestorePermissionError')
       } else {
         i18nToast.error('tradeRequestFailed')
       }
@@ -228,8 +237,7 @@ function ProductDetailPage() {
             </div>
           )}
 
-          <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
-            <ListingStatusBadge status={listing.status} />
+          <div className="absolute top-3 left-3">
             <span className="rounded-md bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
               {listing.time}
             </span>
@@ -275,23 +283,24 @@ function ProductDetailPage() {
         )}
 
         <div className="p-5 sm:p-6">
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <div className="mb-1 flex items-start justify-between gap-3">
             <h1
               className="min-w-0 flex-1 truncate text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-50"
               title={listing.title}
             >
               {listing.title}
             </h1>
-            <p
-              className={`shrink-0 text-lg font-bold sm:text-xl ${
-                listing.price === 0
-                  ? 'text-[#1b76fb] dark:text-[#5b9dff]'
-                  : 'text-slate-900 dark:text-slate-50'
-              }`}
-            >
-              {priceLabel}
-            </p>
+            <ListingStatusBadge status={listing.status} />
           </div>
+          <p
+            className={`mb-3 text-lg font-bold sm:text-xl ${
+              listing.price === 0
+                ? 'text-[#1b76fb] dark:text-[#5b9dff]'
+                : 'text-slate-900 dark:text-slate-50'
+            }`}
+          >
+            {priceLabel}
+          </p>
 
           <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
             <span className="inline-flex max-w-full items-center gap-1 truncate">
